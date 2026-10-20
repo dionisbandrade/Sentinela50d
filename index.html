@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#0f172a">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <title>Sentinela 50D v4.0 | Minuto Pão de Açúcar</title>
+  <title>Sentinela 50D v4.1 | Minuto Pão de Açúcar</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
@@ -31,9 +31,9 @@
         </div>
         <div>
           <h1 class="font-bold text-base leading-tight text-white">
-            Sentinela 50D <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 ml-1">v4.0</span>
+            Sentinela 50D <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 ml-1">v4.1</span>
           </h1>
-          <p class="text-xs text-slate-400">Lente Principal 1x & Memória de EAN</p>
+          <p class="text-xs text-slate-400">Leitor Estável & Memória de EAN</p>
         </div>
       </div>
 
@@ -42,7 +42,7 @@
           <i class="fa-solid fa-traffic-light"></i> Modo Semáforo (PCD)
         </button>
         <button onclick="shareWhatsApp()" class="px-3 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-lg transition">
-          <i class="fa-brands fa-whatsapp text-sm"></i> Turno / Zap
+          <i class="fa-brands fa-whatsapp text-sm"></i> Zap
         </button>
         <button onclick="exportCSV()" title="Exportar Planilha CSV" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition">
           <i class="fa-solid fa-file-csv text-base"></i>
@@ -64,22 +64,17 @@
   <main class="max-w-3xl mx-auto px-4 pt-4 space-y-5">
 
     <!-- ================================================================= -->
-    <!-- PAINEL DE CÂMERA (COM SELETOR ANTI-ULTRAWIDE, ZOOM E FLASH)       -->
+    <!-- PAINEL DE CÂMERA (ESTÁVEL E DIRETO NA LENTE TRASEIRA)             -->
     <!-- ================================================================= -->
     <div id="scannerContainer" class="hidden glass rounded-2xl p-3.5 border-2 border-indigo-500/70 space-y-3">
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <span class="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
-          <i class="fa-solid fa-camera"></i> Selecione a Câmera Principal (1x):
+      <div class="flex items-center justify-between text-xs">
+        <span class="font-bold text-indigo-300 flex items-center gap-1.5">
+          <i class="fa-solid fa-crosshairs"></i> Aponte para o código de barras
         </span>
         <button type="button" onclick="stopScanner()" class="px-2.5 py-1 rounded-lg bg-red-500/20 text-red-300 text-xs font-semibold">
           Fechar Câmera <i class="fa-solid fa-xmark ml-1"></i>
         </button>
       </div>
-
-      <!-- Seletor de Lente (Para fugir da Ultrawide 0.5x) -->
-      <select id="cameraSelect" onchange="switchCamera(this.value)" class="w-full bg-slate-900 border border-indigo-500/50 rounded-xl px-3 py-2 text-xs font-semibold text-white">
-        <option value="">Carregando lentes do aparelho...</option>
-      </select>
 
       <!-- Visor de Vídeo -->
       <div id="reader" class="w-full overflow-hidden rounded-xl bg-black"></div>
@@ -295,18 +290,15 @@
   </main>
 
   <script>
-    const STORAGE_KEY = 'sentinela_50d_minuto_v4';
+    const STORAGE_KEY = 'sentinela_50d_minuto_v4_1';
     const CATALOG_KEY = 'sentinela_ean_catalog_v1';
-    const PREFERRED_CAM_KEY = 'sentinela_preferred_cam_id';
 
     let currentFilter = 'ALL';
     let isPCDMode = false;
     let html5QrCode = null;
     let currentScannerTarget = 'prodName';
     let torchEnabled = false;
-    let availableBackCameras = [];
 
-    // Catálogo inicial com produtos comuns de mercado brasileiro
     const DEFAULT_CATALOG = {
       '7894900010015': { name: 'Refrigerante Coca-Cola Lata 350ml', aisle: 'Corredor 5 - Bebidas', price: 4.99 },
       '7894900011517': { name: 'Refrigerante Coca-Cola 2 Litros', aisle: 'Corredor 5 - Bebidas', price: 11.99 },
@@ -335,7 +327,6 @@
       localStorage.setItem(CATALOG_KEY, JSON.stringify(cat));
     }
 
-    // Helpers de Data
     function addDays(dateObj, days) {
       const d = new Date(dateObj);
       d.setDate(d.getDate() + days);
@@ -396,15 +387,11 @@
       setTimeout(() => b.classList.add('hidden'), 6000);
     }
 
-    // ============================================================================
-    // BUSCA INTELIGENTE DE NOME DO PRODUTO + APRENDIZADO AUTOMÁTICO NA MEMÓRIA
-    // ============================================================================
     async function lookupProductByEAN(ean, targetInputId) {
       const cleanEAN = ean.trim();
       document.getElementById('lastScannedEAN').value = cleanEAN;
       const inputEl = document.getElementById(targetInputId);
 
-      // 1. Verifica primeiro na memória local da loja (Instantâneo!)
       const catalog = getCatalog();
       if (catalog[cleanEAN]) {
         const item = catalog[cleanEAN];
@@ -420,7 +407,6 @@
         return;
       }
 
-      // 2. Se não estiver na memória local, consulta base Brasil + Mundial
       inputEl.value = `Buscando código ${cleanEAN}...`;
       try {
         const urls = [
@@ -440,7 +426,6 @@
 
             if (fullTitle) {
               inputEl.value = fullTitle;
-              // Já salva na memória da loja para a próxima vez!
               saveToCatalog(cleanEAN, fullTitle, document.getElementById('prodAisle').value, document.getElementById('prodPrice').value);
               showBanner(`🌐 Encontrado na base online e salvo na loja: <strong>${fullTitle}</strong>`, 'bg-sky-500/20 text-sky-300 border border-sky-500/40');
               render();
@@ -450,13 +435,12 @@
         }
       } catch (err) {}
 
-      // 3. Se for produto exclusivo da loja ainda sem cadastro na internet, pergunta 1 vez e aprende!
       const novoNome = prompt(`Código inédito lido (${cleanEAN})!\n\nDigite o nome deste produto APENAS ESTA VEZ (o app vai memorizar para sempre):`);
       if (novoNome && novoNome.trim() !== '') {
         const nomeLimpo = novoNome.trim();
         inputEl.value = nomeLimpo;
         saveToCatalog(cleanEAN, nomeLimpo, document.getElementById('prodAisle').value, document.getElementById('prodPrice').value);
-        showBanner(`🧠 Código ${cleanEAN} memorizado como <strong>"${nomeLimpo}"</strong>! Na próxima vez que bipar, ele preencherá sozinho.`, 'bg-amber-500/20 text-amber-300 border border-amber-500/40');
+        showBanner(`🧠 Código ${cleanEAN} memorizado como <strong>"${nomeLimpo}"</strong>!`, 'bg-amber-500/20 text-amber-300 border border-amber-500/40');
         render();
       } else {
         inputEl.value = '';
@@ -466,7 +450,7 @@
     }
 
     // =========================================================================
-    // SELETOR INTELIGENTE DE CÂMERA (EVITA A ULTRAWIDE 0.5x NOS SAMSUNG GALAXY)
+    // MOTOR DE CÂMERA ESTÁVEL (DIRETO NA LENTE TRASEIRA)
     // =========================================================================
     async function startScanner(targetInputId) {
       currentScannerTarget = targetInputId || 'prodName';
@@ -480,51 +464,6 @@
       container.classList.remove('hidden');
       container.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-      try {
-        const devices = await Html5Qrcode.getCameras();
-        if (!devices || devices.length === 0) {
-          alert('Nenhuma câmera encontrada.');
-          return;
-        }
-
-        // Filtra apenas câmeras traseiras (ou todas se o navegador não rotular)
-        const backCams = devices.filter(d => /back|traseira|rear|environment|0/i.test(d.label) && !/front|frontal|user/i.test(d.label));
-        availableBackCameras = backCams.length > 0 ? backCams : devices;
-
-        const selectEl = document.getElementById('cameraSelect');
-        selectEl.innerHTML = availableBackCameras.map((cam, idx) => {
-          const isUltra = /wide|ultra|0\.5|2,\s*facing\s*back/i.test(cam.label);
-          const tag = idx === 0 ? '⭐ Lente Principal (1x Recomendada)' : (isUltra ? '⚠️ Ultrawide (Grande Angular)' : `Lente Auxiliar ${idx + 1}`);
-          return `<option value="${cam.id}">${tag} - ${cam.label || 'Câmera ' + (idx + 1)}</option>`;
-        }).join('');
-
-        // Escolhe a câmera salva pelo usuário OU a PRIMEIRA câmera traseira (que nos Samsung é a Principal 1x, e não a última que é Ultrawide!)
-        const savedCamId = localStorage.getItem(PREFERRED_CAM_KEY);
-        const camExists = availableBackCameras.some(c => c.id === savedCamId);
-        const chosenCamId = camExists ? savedCamId : availableBackCameras[0].id;
-
-        selectEl.value = chosenCamId;
-        await launchCameraStream(chosenCamId);
-
-      } catch (err) {
-        // Fallback caso o navegador peça permissão primeiro
-        await launchCameraStream({ facingMode: "environment" });
-      }
-    }
-
-    async function switchCamera(newCamId) {
-      if (!newCamId) return;
-      localStorage.setItem(PREFERRED_CAM_KEY, newCamId);
-      if (html5QrCode) {
-        try {
-          await html5QrCode.stop();
-          html5QrCode.clear();
-        } catch (e) {}
-      }
-      await launchCameraStream(newCamId);
-    }
-
-    async function launchCameraStream(cameraIdOrConfig) {
       const formatsToSupport = [
         Html5QrcodeSupportedFormats.EAN_13,
         Html5QrcodeSupportedFormats.EAN_8,
@@ -550,7 +489,7 @@
 
       try {
         await html5QrCode.start(
-          cameraIdOrConfig,
+          { facingMode: "environment" },
           config,
           (decodedText) => {
             playTone('OK');
@@ -559,16 +498,9 @@
           },
           () => {}
         );
-
-        setTimeout(() => {
-          try {
-            html5QrCode.applyVideoConstraints({
-              advanced: [{ focusMode: "continuous" }]
-            });
-          } catch (e) {}
-        }, 400);
       } catch (err) {
-        alert('Erro ao iniciar esta lente. Tente selecionar outra lente na lista acima!');
+        alert('Erro ao ligar a câmera. Verifique se permitiu o uso da câmera no navegador.');
+        container.classList.add('hidden');
       }
     }
 
@@ -591,7 +523,7 @@
       if (!html5QrCode) return;
       try {
         html5QrCode.applyVideoConstraints({
-          advanced: [{ zoom: parseFloat(val), focusMode: "continuous" }]
+          advanced: [{ zoom: parseFloat(val) }]
         });
       } catch (e) {}
     }
@@ -608,7 +540,7 @@
           ? 'py-2.5 px-3 rounded-xl bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2'
           : 'py-2.5 px-3 rounded-xl bg-slate-800 text-amber-300 font-semibold text-xs flex items-center justify-center gap-2 border border-slate-700';
       } catch (e) {
-        alert('Esta lente não possui flash ou o navegador bloqueou a lanterna.');
+        alert('Lanterna não suportada por esta lente no navegador.');
       }
     }
 
@@ -623,11 +555,10 @@
           lookupProductByEAN(decodedText, currentScannerTarget);
         })
         .catch(() => {
-          alert('Código não identificado na foto. Tente tirar a foto mais nítida.');
+          alert('Código não identificado na foto.');
         });
     }
 
-    // Alternar Modo Semáforo PCD
     function togglePCDMode() {
       isPCDMode = !isPCDMode;
       stopScanner();
@@ -808,7 +739,6 @@
       const price = parseFloat(document.getElementById('prodPrice').value);
       const scannedEAN = document.getElementById('lastScannedEAN').value;
 
-      // Se havia um EAN bipado, atualiza o catálogo com o nome, corredor e preço escolhidos!
       if (scannedEAN) {
         saveToCatalog(scannedEAN, name, aisle, price);
       }
@@ -856,4 +786,163 @@
 
     function render() {
       const items = loadItems();
-      const analyzed = items.map(item => ({ ...
+      const analyzed = items.map(item => ({ ...item, metrics: analyzeBatch(item) }));
+      analyzed.sort((a, b) => a.metrics.daysLeft - b.metrics.daysLeft);
+
+      const pullNowList = analyzed.filter(i => i.metrics.shouldPullNow);
+      const queuedList = analyzed.filter(i => i.metrics.daysLeft > 50 && i.status === 'SHELF');
+      const terminalList = analyzed.filter(i => i.status === 'IN_TERMINAL');
+      const catalogCount = Object.keys(getCatalog()).length;
+
+      document.getElementById('kpiPullNow').textContent = pullNowList.length;
+      document.getElementById('kpiQueued').textContent = queuedList.length;
+      document.getElementById('kpiTerminal').textContent = terminalList.length;
+      document.getElementById('kpiCatalogCount').textContent = `${catalogCount} EANs`;
+
+      const aisleSelected = document.getElementById('aisleFilter').value;
+
+      const filtered = analyzed.filter(i => {
+        if (aisleSelected !== 'ALL' && i.aisle !== aisleSelected) return false;
+        if (currentFilter === 'PULL_NOW') return i.metrics.shouldPullNow;
+        if (currentFilter === 'QUEUED') return i.metrics.daysLeft > 50 && i.status === 'SHELF';
+        if (currentFilter === 'IN_TERMINAL') return i.status === 'IN_TERMINAL';
+        return true;
+      });
+
+      const container = document.getElementById('productList');
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="glass rounded-2xl p-8 text-center text-slate-400 text-sm">
+            Nenhum lote nesta categoria/corredor no momento.
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(item => {
+        const m = item.metrics;
+        const isAlert = m.shouldPullNow;
+
+        return `
+          <div class="glass rounded-2xl p-4 transition ${isAlert ? 'border-red-500/60 pulse-red' : 'border-slate-800'}">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                    <i class="fa-solid fa-location-dot text-emerald-400 mr-1"></i>${item.aisle}
+                  </span>
+                  <span class="text-[11px] font-semibold px-2 py-0.5 rounded border ${m.badgeColor}">
+                    ${item.status === 'IN_TERMINAL' ? '🛒 NO TERMINAL DE VENCIMENTO' : m.urgencyLabel}
+                  </span>
+                </div>
+                <h3 class="font-bold text-base text-white mt-1.5">${item.name}</h3>
+              </div>
+
+              <div class="flex sm:flex-col items-baseline sm:items-end justify-between border-t sm:border-t-0 border-slate-800 pt-2 sm:pt-0">
+                <span class="text-xs text-slate-400">Vence em <strong class="text-white">${formatDateBR(item.expiry)}</strong></span>
+                <span class="text-sm font-extrabold ${m.daysLeft <= 50 ? 'text-red-400' : 'text-emerald-400'}">
+                  Faltam ${m.daysLeft} dias
+                </span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 pt-3 border-t border-slate-800/80 text-xs">
+              <div class="bg-slate-900/70 p-2 rounded-lg">
+                <span class="text-slate-400 block text-[10px]">Data Gatilho (D-50)</span>
+                <strong class="text-slate-200">${formatDateBR(m.pullDate)}</strong>
+                <span class="block text-[10px] ${m.daysUntil50Window <= 0 ? 'text-red-400 font-semibold' : 'text-amber-300'}">
+                  ${m.daysUntil50Window <= 0 ? 'Já na janela de retirada!' : 'Retirar daqui a ' + m.daysUntil50Window + ' dias'}
+                </span>
+              </div>
+              <div class="bg-slate-900/70 p-2 rounded-lg">
+                <span class="text-slate-400 block text-[10px]">Estoque & Valor</span>
+                <strong class="text-slate-200">${item.qty} unid.</strong>
+                <span class="block text-[10px] text-emerald-400">${m.totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+              </div>
+              <div class="bg-slate-900/70 p-2 rounded-lg">
+                <span class="text-slate-400 block text-[10px]">Preço Sugerido Terminal</span>
+                <strong class="text-amber-300">
+                  ${m.recommendedDiscount > 0 ? m.discountedUnitPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) + ' (-' + m.recommendedDiscount + '%)' : 'Preço Normal'}
+                </strong>
+                <span class="block text-[10px] text-slate-400">De: R$ ${item.price.toFixed(2).replace('.', ',')}</span>
+              </div>
+              <div class="flex items-center justify-end gap-2">
+                ${item.status !== 'IN_TERMINAL' ? `
+                  <button onclick="moveToTerminal('${item.id}')" class="flex-1 py-2 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition flex items-center justify-center gap-1">
+                    <i class="fa-solid fa-cart-flatbed"></i> Mover p/ Terminal
+                  </button>
+                ` : ''}
+                <button onclick="removeBatch('${item.id}')" title="Lote 100% Vendido / Baixado" class="py-2 px-3 rounded-lg bg-slate-800 hover:bg-red-900/60 text-slate-300 hover:text-red-200 text-xs transition">
+                  <i class="fa-solid fa-check-double"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function shareWhatsApp() {
+      const items = loadItems().map(i => ({ ...i, metrics: analyzeBatch(i) }));
+      const toPull = items.filter(i => i.metrics.shouldPullNow);
+
+      let text = `*🚨 ROTA DE VALIDADE (50 DIAS) - MINUTO PÃO DE AÇÚCAR*\n`;
+      text += `_Gerado em ${new Date().toLocaleDateString('pt-BR')}_\n\n`;
+
+      if (toPull.length === 0) {
+        text += `✅ Nenhum lote pendente na janela de 50 dias hoje nos 6 corredores!`;
+      } else {
+        text += `*RETIRAR DA GÔNDOLA HOJE P/ TERMINAL (${toPull.length} lotes):*\n`;
+        toPull.forEach((item, idx) => {
+          text += `\n${idx + 1}. *[${item.aisle}]* ${item.name}\n`;
+          text += `   • Qtd: ${item.qty} un | Vence: ${formatDateBR(item.expiry)} (${item.metrics.daysLeft}d)\n`;
+          text += `   • Sugestão Terminal: *-${item.metrics.recommendedDiscount}% OFF* (Por R$ ${item.metrics.discountedUnitPrice.toFixed(2).replace('.', ',')})\n`;
+        });
+      }
+
+      navigator.clipboard.writeText(text).then(() => {
+        alert('Checklist dos 6 corredores copiado! Agora é só colar no WhatsApp da equipe da loja.');
+      }).catch(() => {
+        prompt('Copie o resumo abaixo para o WhatsApp:', text);
+      });
+    }
+
+    function exportCSV() {
+      const items = loadItems().map(i => ({ ...i, metrics: analyzeBatch(i) }));
+      const headers = ['Produto', 'Corredor', 'Validade', 'Dias_Restantes', 'Data_Retirada_50D', 'Qtd', 'Preco_Original', 'Desconto_Sugerido_%', 'Status'];
+      const rows = items.map(i => [
+        `"${i.name}"`, `"${i.aisle}"`, i.expiry, i.metrics.daysLeft, i.metrics.pullDate, i.qty, i.price, i.metrics.recommendedDiscount, i.status
+      ]);
+      const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `radar_validade_50d_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+    }
+
+    function startVoiceInput(targetId, btnEl) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        alert('Use o microfone do teclado do celular para ditar o nome do produto!');
+        return;
+      }
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'pt-BR';
+      const originalHTML = btnEl ? btnEl.innerHTML : '';
+      if (btnEl) btnEl.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Ouvindo...';
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById(targetId).value = transcript;
+        if (btnEl) btnEl.innerHTML = originalHTML;
+      };
+      recognition.onerror = () => { if (btnEl) btnEl.innerHTML = originalHTML; };
+      recognition.start();
+    }
+
+    document.getElementById('prodExpiry').value = addDays(new Date(), 45);
+    document.getElementById('pcdExpiry').value = addDays(new Date(), 45);
+    render();
+  </script>
+</body>
+</html>
