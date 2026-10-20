@@ -3,36 +3,45 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Sentinela 50D | Controle Inteligente de Validade</title>
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Sentinela 50D v3.0 | Controle Inteligente de Validade</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
   <style>
     body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background-color: #0f172a; color: #f8fafc; }
-    .glass { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+    .glass { background: rgba(30, 41, 59, 0.88); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.09); }
     .pulse-red { animation: pulseRed 2s infinite; }
     @keyframes pulseRed {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
-      50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45); }
+      50% { box-shadow: 0 0 0 9px rgba(239, 68, 68, 0); }
     }
+    #reader video { object-fit: cover !important; border-radius: 0.5rem; }
   </style>
 </head>
 <body class="min-h-screen pb-24">
 
   <!-- Header -->
   <header class="sticky top-0 z-30 glass px-4 py-3 border-b border-slate-800">
-    <div class="max-w-3xl mx-auto flex items-center justify-between">
+    <div class="max-w-3xl mx-auto flex flex-wrap items-center justify-between gap-2">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold text-lg">
           <i class="fa-solid fa-shield-halved"></i>
         </div>
         <div>
-          <h1 class="font-bold text-base leading-tight text-white">Sentinela 50D <span class="text-xs font-normal px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 ml-1">Minuto</span></h1>
-          <p class="text-xs text-slate-400">Radar Anti-Quebra & Terminal de Vencimento</p>
+          <h1 class="font-bold text-base leading-tight text-white">
+            Sentinela 50D <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 ml-1">v3.0</span>
+          </h1>
+          <p class="text-xs text-slate-400">6 Corredores & Modo Semáforo PCD</p>
         </div>
       </div>
-      <div class="flex gap-2">
-        <button onclick="shareWhatsApp()" class="px-3 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-lg shadow-green-900/30 transition">
+
+      <div class="flex items-center gap-1.5">
+        <button onclick="togglePCDMode()" id="btnPCDMode" class="px-3 py-2 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-extrabold flex items-center gap-1.5 shadow-lg transition">
+          <i class="fa-solid fa-traffic-light"></i> Modo Semáforo (PCD)
+        </button>
+        <button onclick="shareWhatsApp()" class="px-3 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-lg transition">
           <i class="fa-brands fa-whatsapp text-sm"></i> Turno / Zap
         </button>
         <button onclick="exportCSV()" title="Exportar Planilha CSV" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition">
@@ -42,498 +51,199 @@
     </div>
   </header>
 
+  <!-- MODAL TELA CHEIA DO SEMÁFORO PCD (VERDE / VERMELHO + VOZ) -->
+  <div id="pcdModal" class="hidden fixed inset-0 z-50 flex flex-col items-center justify-center p-6 text-center">
+    <div id="pcdModalIcon" class="text-8xl mb-6"></div>
+    <h2 id="pcdModalTitle" class="text-4xl sm:text-5xl font-black uppercase tracking-tight mb-4"></h2>
+    <p id="pcdModalSubtitle" class="text-xl sm:text-2xl font-bold max-w-md mb-8"></p>
+    <button onclick="closePCDModal()" class="w-full max-w-sm py-5 rounded-2xl bg-white text-slate-950 font-black text-xl shadow-2xl uppercase tracking-wider">
+      OK, PRÓXIMO PRODUTO
+    </button>
+  </div>
+
   <main class="max-w-3xl mx-auto px-4 pt-4 space-y-5">
 
-    <!-- KPIs de Impacto na Loja -->
-    <section class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-      <div class="glass rounded-xl p-3 border-l-4 border-l-red-500">
-        <span class="text-[11px] uppercase tracking-wider text-slate-400 block">Retirar Hoje (≤50d)</span>
-        <div class="flex items-baseline justify-between mt-1">
-          <strong id="kpiPullNow" class="text-2xl font-extrabold text-red-400">0</strong>
-          <span class="text-[11px] text-red-300 bg-red-500/10 px-1.5 py-0.5 rounded">Ação Imediata</span>
-        </div>
+    <!-- ======================================================= -->
+    <!-- PAINEL DE CÂMERA COMPARTILHADO (COM FOCO, ZOOM E FLASH) -->
+    <!-- ======================================================= -->
+    <div id="scannerContainer" class="hidden glass rounded-2xl p-3 border-2 border-indigo-500/60 space-y-3">
+      <div class="flex items-center justify-between text-xs">
+        <span class="font-bold text-indigo-300 flex items-center gap-1.5">
+          <i class="fa-solid fa-crosshairs"></i> Afaste ~20cm da lata e use o Zoom abaixo se necessário
+        </span>
+        <button type="button" onclick="stopScanner()" class="px-2.5 py-1 rounded-lg bg-red-500/20 text-red-300 font-semibold">
+          Fechar <i class="fa-solid fa-xmark ml-1"></i>
+        </button>
       </div>
-      <div class="glass rounded-xl p-3 border-l-4 border-l-amber-400">
-        <span class="text-[11px] uppercase tracking-wider text-slate-400 block">Na Fila (>50d)</span>
-        <div class="flex items-baseline justify-between mt-1">
-          <strong id="kpiQueued" class="text-2xl font-extrabold text-amber-300">0</strong>
-          <span class="text-[11px] text-slate-400">Monitorados</span>
-        </div>
-      </div>
-      <div class="glass rounded-xl p-3 border-l-4 border-l-sky-400">
-        <span class="text-[11px] uppercase tracking-wider text-slate-400 block">No Terminal</span>
-        <div class="flex items-baseline justify-between mt-1">
-          <strong id="kpiTerminal" class="text-2xl font-extrabold text-sky-400">0</strong>
-          <span class="text-[11px] text-slate-400">Em Promoção</span>
-        </div>
-      </div>
-      <div class="glass rounded-xl p-3 border-l-4 border-l-emerald-500">
-        <span class="text-[11px] uppercase tracking-wider text-slate-400 block">Valor Protegido</span>
-        <div class="flex items-baseline justify-between mt-1">
-          <strong id="kpiSavedValue" class="text-lg font-extrabold text-emerald-400">R$ 0,00</strong>
-        </div>
-      </div>
-    </section>
 
-    <!-- Formulário Rápido de Captura no Corredor -->
-    <section class="glass rounded-2xl p-4 space-y-3">
-      <div class="flex items-center justify-between">
-        <h2 class="text-sm font-bold text-white flex items-center gap-2">
-          <i class="fa-solid fa-bolt text-amber-400"></i> Bipagem Rápida de Gôndola
+      <!-- Visor de Vídeo -->
+      <div id="reader" class="w-full overflow-hidden rounded-xl bg-black"></div>
+
+      <!-- Controles de Foco/Zoom, Lanterna e Câmera Nativa -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+        <div class="bg-slate-900/90 p-2 rounded-xl border border-slate-700 flex items-center gap-2">
+          <i class="fa-solid fa-magnifying-glass-plus text-emerald-400 text-xs"></i>
+          <span class="text-[11px] text-slate-300 whitespace-nowrap">Zoom Foco:</span>
+          <input type="range" id="zoomSlider" min="1" max="3" step="0.2" value="1" oninput="applyZoom(this.value)" class="w-full accent-emerald-500">
+          <span id="zoomValue" class="text-[11px] font-bold text-emerald-400">1.0x</span>
+        </div>
+
+        <button type="button" onclick="toggleTorch()" id="btnTorch" class="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-semibold text-xs flex items-center justify-center gap-2 border border-slate-700">
+          <i class="fa-solid fa-bolt"></i> Ligar Lanterna (Flash)
+        </button>
+
+        <label class="py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer text-center shadow">
+          <i class="fa-solid fa-camera-retro"></i> Câmera Nativa (Macro)
+          <input type="file" accept="image/*" capture="environment" onchange="scanFromNativePhoto(event)" class="hidden">
+        </label>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VISÃO 1: MODO SEMÁFORO ACESSÍVEL (PCD)     -->
+    <!-- ========================================== -->
+    <section id="pcdSection" class="hidden space-y-4">
+      <div class="bg-amber-500/15 border-2 border-amber-400/50 rounded-2xl p-4 text-center">
+        <h2 class="text-lg font-extrabold text-amber-300 uppercase flex items-center justify-center gap-2">
+          <i class="fa-solid fa-universal-access"></i> Semáforo da Validade (Modo Fácil)
         </h2>
-        <div class="flex gap-2">
-          <button type="button" onclick="toggleScanner()" class="text-xs px-2.5 py-1 rounded-lg bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/30 flex items-center gap-1.5">
-            <i class="fa-solid fa-barcode"></i> Câmera EAN
-          </button>
-          <button type="button" onclick="startVoiceInput()" id="btnVoice" class="text-xs px-2.5 py-1 rounded-lg bg-rose-500/20 border border-rose-500/40 text-rose-300 hover:bg-rose-500/30 flex items-center gap-1.5">
-            <i class="fa-solid fa-microphone"></i> Voz
-          </button>
-        </div>
+        <p class="text-sm text-slate-200 mt-1">
+          🟢 <strong>VERDE:</strong> Deixa na prateleira &nbsp;|&nbsp; 🔴 <strong>VERMELHO:</strong> Coloca no carrinho!
+        </p>
       </div>
 
-      <!-- Área do Leitor de Código de Barras -->
-      <div id="scannerContainer" class="hidden rounded-xl overflow-hidden border border-slate-700 bg-black">
-        <div id="reader" class="w-full"></div>
-        <button type="button" onclick="toggleScanner()" class="w-full py-2 bg-slate-800 text-xs text-slate-300">Fechar Câmera</button>
-      </div>
-
-      <form id="productForm" onsubmit="addProduct(event)" class="grid grid-cols-1 sm:grid-cols-6 gap-2.5">
-        <div class="sm:col-span-3">
-          <label class="text-[11px] text-slate-400 block mb-1">Produto / EAN</label>
-          <input type="text" id="prodName" required placeholder="Ex: Iogurte Grego Vigor 100g" class="w-full bg-slate-900/90 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none">
-        </div>
-        <div class="sm:col-span-1">
-          <label class="text-[11px] text-slate-400 block mb-1">Corredor / Setor</label>
-          <select id="prodAisle" class="w-full bg-slate-900/90 border border-slate-700 rounded-lg px-2.5 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none">
-            <option value="Laticínios / Frios">Laticínios / Frios</option>
-            <option value="Mercearia Doce">Mercearia Doce</option>
-            <option value="Mercearia Salgada">Mercearia Salgada</option>
-            <option value="Padaria / Matinais">Padaria / Matinais</option>
-            <option value="Bebidas">Bebidas</option>
-            <option value="Perfumaria / Limpeza">Perfumaria / Limpeza</option>
-          </select>
-        </div>
-        <div class="sm:col-span-2">
-          <label class="text-[11px] text-slate-400 block mb-1">Data de Validade</label>
-          <input type="date" id="prodExpiry" required class="w-full bg-slate-900/90 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none">
-        </div>
-
-        <div class="sm:col-span-2">
-          <label class="text-[11px] text-slate-400 block mb-1">Qtd. na Prateleira</label>
-          <input type="number" id="prodQty" required min="1" value="12" class="w-full bg-slate-900/90 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none">
-        </div>
-        <div class="sm:col-span-2">
-          <label class="text-[11px] text-slate-400 block mb-1">Preço Unitário (R$)</label>
-          <input type="number" id="prodPrice" required step="0.01" min="0.1" value="8.90" class="w-full bg-slate-900/90 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none">
-        </div>
-        <div class="sm:col-span-2">
-          <label class="text-[11px] text-slate-400 block mb-1">Giro Estimado</label>
-          <select id="prodVelocity" class="w-full bg-slate-900/90 border border-slate-700 rounded-lg px-2.5 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none">
-            <option value="0.5">Baixo (~0.5 un/dia)</option>
-            <option value="1.5" selected>Médio (~1.5 un/dia)</option>
-            <option value="4.0">Alto (~4 un/dia)</option>
+      <form onsubmit="handlePCDCheck(event)" class="glass rounded-2xl p-5 space-y-5">
+        <div>
+          <label class="text-sm font-bold text-slate-200 block mb-2">1. Qual é o seu Corredor?</label>
+          <select id="pcdAisle" class="w-full bg-slate-900 border-2 border-slate-600 rounded-xl px-4 py-3.5 text-lg font-bold text-white">
+            <option value="Corredor 1 - Laticínios e Frios">Corredor 1 - Laticínios e Frios</option>
+            <option value="Corredor 2 - Padaria e Matinais">Corredor 2 - Padaria e Matinais</option>
+            <option value="Corredor 3 - Mercearia Salgada">Corredor 3 - Mercearia Salgada</option>
+            <option value="Corredor 4 - Mercearia Doce">Corredor 4 - Mercearia Doce</option>
+            <option value="Corredor 5 - Bebidas">Corredor 5 - Bebidas</option>
+            <option value="Corredor 6 - Perfumaria e Limpeza">Corredor 6 - Perfumaria e Limpeza</option>
           </select>
         </div>
 
-        <div class="sm:col-span-6 pt-1">
-          <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-sm shadow-lg shadow-emerald-900/40 transition flex items-center justify-center gap-2">
-            <i class="fa-solid fa-clock-rotate-left"></i> Agendar Radar de 50 Dias
-          </button>
+        <div>
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <label class="text-sm font-bold text-slate-200">2. Qual é o Produto?</label>
+            <div class="flex gap-2">
+              <button type="button" onclick="startScanner('pcdProdName')" class="px-3 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold flex items-center gap-1.5 shadow">
+                <i class="fa-solid fa-barcode"></i> Ler Código de Barras
+              </button>
+              <button type="button" onclick="startVoiceInput('pcdProdName', this)" class="px-3 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold flex items-center gap-1.5 shadow">
+                <i class="fa-solid fa-microphone"></i> Falar Nome
+              </button>
+            </div>
+          </div>
+          <input type="text" id="pcdProdName" required placeholder="Bipe o código ou fale o nome..." class="w-full bg-slate-900 border-2 border-slate-600 rounded-xl px-4 py-3.5 text-lg font-bold text-white">
         </div>
+
+        <div>
+          <label class="text-sm font-bold text-slate-200 block mb-2">3. Qual a Data de Validade na embalagem?</label>
+          <input type="date" id="pcdExpiry" required class="w-full bg-slate-900 border-2 border-amber-400 rounded-xl px-4 py-4 text-xl font-black text-white">
+        </div>
+
+        <button type="submit" class="w-full py-5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xl uppercase tracking-wide shadow-xl flex items-center justify-center gap-3">
+          <i class="fa-solid fa-magnifying-glass-chart text-2xl"></i> VERIFICAR COR AGORA
+        </button>
       </form>
     </section>
 
-    <!-- Abas de Filtro Operacional -->
-    <div class="flex items-center justify-between gap-2 overflow-x-auto pb-1">
-      <div class="flex gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800">
-        <button onclick="setFilter('ALL')" id="tabALL" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-white transition">Todos</button>
-        <button onclick="setFilter('PULL_NOW')" id="tabPULL_NOW" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-1">
-          <span class="w-2 h-2 rounded-full bg-red-500"></span> Retirar p/ Terminal (≤50d)
-        </button>
-        <button onclick="setFilter('QUEUED')" id="tabQUEUED" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition">
-          Fila Futura (>50d)
-        </button>
-        <button onclick="setFilter('IN_TERMINAL')" id="tabIN_TERMINAL" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition">
-          Já no Terminal
-        </button>
-      </div>
-      <button onclick="resetDemoData()" class="text-[11px] text-slate-400 hover:text-slate-200 underline whitespace-nowrap">Restaurar Exemplos</button>
-    </div>
+    <!-- ========================================== -->
+    <!-- VISÃO 2: PAINEL COMPLETO DA LOJA           -->
+    <!-- ========================================== -->
+    <div id="standardSection" class="space-y-5">
 
-    <!-- Lista Inteligente de Lotes -->
-    <section id="productList" class="space-y-3"></section>
-
-  </main>
-
-  <script>
-    const STORAGE_KEY = 'sentinela_50d_minuto_v1';
-    let currentFilter = 'ALL';
-    let html5QrCode = null;
-
-    // Helpers de Data
-    function addDays(dateObj, days) {
-      const d = new Date(dateObj);
-      d.setDate(d.getDate() + days);
-      return d.toISOString().split('T')[0];
-    }
-
-    function diffDaysFromToday(dateStr) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const target = new Date(dateStr + 'T00:00:00');
-      return Math.ceil((target - today) / (1000 * 60 * 60 * 24));
-    }
-
-    function formatDateBR(dateStr) {
-      const [y, m, d] = dateStr.split('-');
-      return `${d}/${m}/${y}`;
-    }
-
-    // Cálculo Preditivo de Desconto e Risco de Quebra
-    function analyzeBatch(item) {
-      const daysLeft = diffDaysFromToday(item.expiry);
-      const daysUntil50Window = daysLeft - 50; // <= 0 significa que já bateu 50 dias ou menos!
-      const pullDate = addDays(new Date(item.expiry + 'T00:00:00'), -50);
-
-      // Quantos dias levaria para escoar o lote no giro atual vs dias restantes
-      const daysNeededToSellOut = item.qty / parseFloat(item.velocity || 1);
-      const pressureRatio = daysLeft > 0 ? (daysNeededToSellOut / daysLeft) : 99;
-
-      let recommendedDiscount = 0;
-      let urgencyLabel = 'Monitorado na Gôndola';
-      let badgeColor = 'bg-slate-800 text-slate-300 border-slate-700';
-
-      if (daysLeft <= 0) {
-        recommendedDiscount = 100;
-        urgencyLabel = 'VENCIDO - RETIRAR IMEDIATO';
-        badgeColor = 'bg-red-950 text-red-300 border-red-600';
-      } else if (daysLeft <= 50) {
-        if (daysLeft <= 10 || pressureRatio >= 1.4) {
-          recommendedDiscount = 50;
-          urgencyLabel = 'Crítico: Desconto 50% + Frente de Caixa';
-          badgeColor = 'bg-red-500/20 text-red-300 border-red-500/40';
-        } else if (daysLeft <= 25 || pressureRatio >= 0.9) {
-          recommendedDiscount = 35;
-          urgencyLabel = 'Alta Pressão: Etiqueta 35% OFF';
-          badgeColor = 'bg-orange-500/20 text-orange-300 border-orange-500/40';
-        } else {
-          recommendedDiscount = 20;
-          urgencyLabel = 'Entrada 50D: Terminal 20% OFF';
-          badgeColor = 'bg-amber-500/20 text-amber-300 border-amber-500/40';
-        }
-      }
-
-      const totalValue = item.qty * item.price;
-      const discountedUnitPrice = item.price * (1 - recommendedDiscount / 100);
-
-      return {
-        daysLeft,
-        daysUntil50Window,
-        pullDate,
-        recommendedDiscount,
-        discountedUnitPrice,
-        urgencyLabel,
-        badgeColor,
-        totalValue,
-        shouldPullNow: daysLeft <= 50 && item.status !== 'IN_TERMINAL'
-      };
-    }
-
-    function getInitialDemoData() {
-      const today = new Date();
-      return [
-        {
-          id: '1',
-          name: 'Azeite Extravirgem Borges 500ml',
-          aisle: 'Mercearia Salgada',
-          expiry: addDays(today, 47), // Já entrou na janela de 50 dias há 3 dias!
-          qty: 14,
-          price: 49.90,
-          velocity: 0.5,
-          status: 'SHELF'
-        },
-        {
-          id: '2',
-          name: 'Café Torrado e Moído Pilão 500g',
-          aisle: 'Padaria / Matinais',
-          expiry: addDays(today, 22), // Esquecido na prateleira, urgência alta!
-          qty: 28,
-          price: 21.90,
-          velocity: 1.5,
-          status: 'SHELF'
-        },
-        {
-          id: '3',
-          name: 'Biscoito Importado Amanteigado 400g',
-          aisle: 'Mercearia Doce',
-          expiry: addDays(today, 61), // Ainda faltam 11 dias para entrar na regra dos 50 dias
-          qty: 18,
-          price: 34.50,
-          velocity: 0.5,
-          status: 'SHELF'
-        },
-        {
-          id: '4',
-          name: 'Requeijão Cremoso Vigor 200g',
-          aisle: 'Laticínios / Frios',
-          expiry: addDays(today, 38),
-          qty: 10,
-          price: 9.80,
-          velocity: 1.5,
-          status: 'IN_TERMINAL'
-        }
-      ];
-    }
-
-    function loadItems() {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) {
-        const demo = getInitialDemoData();
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(demo));
-        return demo;
-      }
-      return JSON.parse(raw);
-    }
-
-    function saveItems(items) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-      render();
-    }
-
-    function resetDemoData() {
-      localStorage.removeItem(STORAGE_KEY);
-      render();
-    }
-
-    function addProduct(e) {
-      e.preventDefault();
-      const items = loadItems();
-      const newItem = {
-        id: Date.now().toString(),
-        name: document.getElementById('prodName').value.trim(),
-        aisle: document.getElementById('prodAisle').value,
-        expiry: document.getElementById('prodExpiry').value,
-        qty: parseInt(document.getElementById('prodQty').value, 10),
-        price: parseFloat(document.getElementById('prodPrice').value),
-        velocity: parseFloat(document.getElementById('prodVelocity').value),
-        status: 'SHELF'
-      };
-      items.unshift(newItem);
-      saveItems(items);
-      document.getElementById('prodName').value = '';
-    }
-
-    function moveToTerminal(id) {
-      const items = loadItems().map(item => item.id === id ? { ...item, status: 'IN_TERMINAL' } : item);
-      saveItems(items);
-    }
-
-    function removeBatch(id) {
-      const items = loadItems().filter(item => item.id !== id);
-      saveItems(items);
-    }
-
-    function setFilter(f) {
-      currentFilter = f;
-      ['ALL', 'PULL_NOW', 'QUEUED', 'IN_TERMINAL'].forEach(tab => {
-        const el = document.getElementById('tab' + tab);
-        if (tab === f) {
-          el.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white transition flex items-center gap-1';
-        } else {
-          el.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-1';
-        }
-      });
-      render();
-    }
-
-    function render() {
-      const items = loadItems();
-      const analyzed = items.map(item => ({ ...item, metrics: analyzeBatch(item) }));
-
-      // Ordenar por menor validade primeiro
-      analyzed.sort((a, b) => a.metrics.daysLeft - b.metrics.daysLeft);
-
-      // Atualizar KPIs
-      const pullNowList = analyzed.filter(i => i.metrics.shouldPullNow);
-      const queuedList = analyzed.filter(i => i.metrics.daysLeft > 50 && i.status === 'SHELF');
-      const terminalList = analyzed.filter(i => i.status === 'IN_TERMINAL');
-      const totalProtected = analyzed.reduce((acc, cur) => acc + cur.metrics.totalValue, 0);
-
-      document.getElementById('kpiPullNow').textContent = pullNowList.length;
-      document.getElementById('kpiQueued').textContent = queuedList.length;
-      document.getElementById('kpiTerminal').textContent = terminalList.length;
-      document.getElementById('kpiSavedValue').textContent = totalProtected.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-
-      // Filtrar visualização
-      const filtered = analyzed.filter(i => {
-        if (currentFilter === 'PULL_NOW') return i.metrics.shouldPullNow;
-        if (currentFilter === 'QUEUED') return i.metrics.daysLeft > 50 && i.status === 'SHELF';
-        if (currentFilter === 'IN_TERMINAL') return i.status === 'IN_TERMINAL';
-        return true;
-      });
-
-      const container = document.getElementById('productList');
-      if (filtered.length === 0) {
-        container.innerHTML = `
-          <div class="glass rounded-2xl p-8 text-center text-slate-400 text-sm">
-            Nenhum lote nesta categoria no momento.
-          </div>`;
-        return;
-      }
-
-      container.innerHTML = filtered.map(item => {
-        const m = item.metrics;
-        const isAlert = m.shouldPullNow;
-
-        return `
-          <div class="glass rounded-2xl p-4 transition ${isAlert ? 'border-red-500/60 pulse-red' : 'border-slate-800'}">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <div class="flex items-center gap-2 flex-wrap">
-                  <span class="text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
-                    <i class="fa-solid fa-location-dot text-emerald-400 mr-1"></i>${item.aisle}
-                  </span>
-                  <span class="text-[11px] font-semibold px-2 py-0.5 rounded border ${m.badgeColor}">
-                    ${item.status === 'IN_TERMINAL' ? 'NO TERMINAL DE VENCIMENTO' : m.urgencyLabel}
-                  </span>
-                </div>
-                <h3 class="font-bold text-base text-white mt-1.5">${item.name}</h3>
-              </div>
-
-              <div class="flex sm:flex-col items-baseline sm:items-end justify-between border-t sm:border-t-0 border-slate-800 pt-2 sm:pt-0">
-                <span class="text-xs text-slate-400">Vence em <strong class="text-white">${formatDateBR(item.expiry)}</strong></span>
-                <span class="text-sm font-extrabold ${m.daysLeft <= 50 ? 'text-red-400' : 'text-emerald-400'}">
-                  Faltam ${m.daysLeft} dias
-                </span>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 pt-3 border-t border-slate-800/80 text-xs">
-              <div class="bg-slate-900/70 p-2 rounded-lg">
-                <span class="text-slate-400 block text-[10px]">Data Gatilho (D-50)</span>
-                <strong class="text-slate-200">${formatDateBR(m.pullDate)}</strong>
-                <span class="block text-[10px] ${m.daysUntil50Window <= 0 ? 'text-red-400 font-semibold' : 'text-amber-300'}">
-                  ${m.daysUntil50Window <= 0 ? 'Já na janela de retirada!' : 'Retirar daqui a ' + m.daysUntil50Window + ' dias'}
-                </span>
-              </div>
-              <div class="bg-slate-900/70 p-2 rounded-lg">
-                <span class="text-slate-400 block text-[10px]">Estoque & Valor em Risco</span>
-                <strong class="text-slate-200">${item.qty} unid.</strong>
-                <span class="block text-[10px] text-emerald-400">${m.totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
-              </div>
-              <div class="bg-slate-900/70 p-2 rounded-lg">
-                <span class="text-slate-400 block text-[10px]">Preço Sugerido Terminal</span>
-                <strong class="text-amber-300">
-                  ${m.recommendedDiscount > 0 ? m.discountedUnitPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) + ' (-' + m.recommendedDiscount + '%)' : 'Preço Normal'}
-                </strong>
-                <span class="block text-[10px] text-slate-400">De: R$ ${item.price.toFixed(2).replace('.', ',')}</span>
-              </div>
-              <div class="flex items-center justify-end gap-2">
-                ${item.status !== 'IN_TERMINAL' ? `
-                  <button onclick="moveToTerminal('${item.id}')" class="flex-1 py-2 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition flex items-center justify-center gap-1">
-                    <i class="fa-solid fa-cart-flatbed"></i> Mover p/ Terminal
-                  </button>
-                ` : ''}
-                <button onclick="removeBatch('${item.id}')" title="Lote 100% Vendido / Baixado" class="py-2 px-3 rounded-lg bg-slate-800 hover:bg-red-900/60 text-slate-300 hover:text-red-200 text-xs transition">
-                  <i class="fa-solid fa-check-double"></i>
-                </button>
-              </div>
-            </div>
+      <!-- KPIs de Impacto na Loja -->
+      <section class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <div class="glass rounded-xl p-3 border-l-4 border-l-red-500">
+          <span class="text-[11px] uppercase tracking-wider text-slate-400 block">Retirar Hoje (≤50d)</span>
+          <div class="flex items-baseline justify-between mt-1">
+            <strong id="kpiPullNow" class="text-2xl font-extrabold text-red-400">0</strong>
+            <span class="text-[11px] text-red-300 bg-red-500/10 px-1.5 py-0.5 rounded">Ação Imediata</span>
           </div>
-        `;
-      }).join('');
-    }
+        </div>
+        <div class="glass rounded-xl p-3 border-l-4 border-l-amber-400">
+          <span class="text-[11px] uppercase tracking-wider text-slate-400 block">Na Fila (>50d)</span>
+          <div class="flex items-baseline justify-between mt-1">
+            <strong id="kpiQueued" class="text-2xl font-extrabold text-amber-300">0</strong>
+            <span class="text-[11px] text-slate-400">Monitorados</span>
+          </div>
+        </div>
+        <div class="glass rounded-xl p-3 border-l-4 border-l-sky-400">
+          <span class="text-[11px] uppercase tracking-wider text-slate-400 block">No Terminal</span>
+          <div class="flex items-baseline justify-between mt-1">
+            <strong id="kpiTerminal" class="text-2xl font-extrabold text-sky-400">0</strong>
+            <span class="text-[11px] text-slate-400">Em Promoção</span>
+          </div>
+        </div>
+        <div class="glass rounded-xl p-3 border-l-4 border-l-emerald-500">
+          <span class="text-[11px] uppercase tracking-wider text-slate-400 block">Valor Protegido</span>
+          <div class="flex items-baseline justify-between mt-1">
+            <strong id="kpiSavedValue" class="text-lg font-extrabold text-emerald-400">R$ 0,00</strong>
+          </div>
+        </div>
+      </section>
 
-    // Gerar Checklist Formatado para o WhatsApp da Loja
-    function shareWhatsApp() {
-      const items = loadItems().map(i => ({ ...i, metrics: analyzeBatch(i) }));
-      const toPull = items.filter(i => i.metrics.shouldPullNow);
+      <!-- Formulário Rápido de Captura no Corredor -->
+      <section class="glass rounded-2xl p-4 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h2 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-bolt text-amber-400"></i> Bipagem Rápida de Gôndola (6 Corredores)
+          </h2>
+          <div class="flex gap-2">
+            <button type="button" onclick="startScanner('prodName')" class="text-xs px-3 py-1.5 rounded-lg bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/30 font-semibold flex items-center gap-1.5">
+              <i class="fa-solid fa-barcode"></i> Câmera EAN
+            </button>
+            <button type="button" onclick="startVoiceInput('prodName', this)" id="btnVoice" class="text-xs px-3 py-1.5 rounded-lg bg-rose-500/20 border border-rose-500/40 text-rose-300 hover:bg-rose-500/30 font-semibold flex items-center gap-1.5">
+              <i class="fa-solid fa-microphone"></i> Voz
+            </button>
+          </div>
+        </div>
 
-      let text = `*🚨 ROTA DE VALIDADE (50 DIAS) - MINUTO PÃO DE AÇÚCAR*\n`;
-      text += `_Gerado em ${new Date().toLocaleDateString('pt-BR')}_\n\n`;
+        <form id="productForm" onsubmit="addProduct(event)" class="grid grid-cols-1 sm:grid-cols-6 gap-2.5">
+          <div class="sm:col-span-3">
+            <label class="text-[11px] text-slate-400 block mb-1">Produto / Código EAN</label>
+            <input type="text" id="prodName" required placeholder="Bipe o código ou digite o nome..." class="w-full bg-slate-900/90 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none">
+          </div>
+          <div class="sm:col-span-3">
+            <label class="text-[11px] text-slate-400 block mb-1">Corredor Responsável (1 a 6)</label>
+            <select id="prodAisle" class="w-full bg-slate-900/90 border border-slate-700 rounded-lg px-2.5 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none">
+              <option value="Corredor 1 - Laticínios e Frios">Corredor 1 - Laticínios e Frios</option>
+              <option value="Corredor 2 - Padaria e Matinais">Corredor 2 - Padaria e Matinais</option>
+              <option value="Corredor 3 - Mercearia Salgada">Corredor 3 - Mercearia Salgada</option>
+              <option value="Corredor 4 - Mercearia Doce">Corredor 4 - Mercearia Doce</option>
+              <option value="Corredor 5 - Bebidas">Corredor 5 - Bebidas</option>
+              <option value="Corredor 6 - Perfumaria e Limpeza">Corredor 6 - Perfumaria e Limpeza</option>
+            </select>
+          </div>
 
-      if (toPull.length === 0) {
-        text += `✅ Nenhum lote pendente na janela de 50 dias hoje!`;
-      } else {
-        text += `*RETIRAR DA GÔNDOLA HOJE P/ TERMINAL (${toPull.length} lotes):*\n`;
-        toPull.forEach((item, idx) => {
-          text += `\n${idx + 1}. *${item.name}* (${item.aisle})\n`;
-          text += `   • Qtd: ${item.qty} un | Vence: ${formatDateBR(item.expiry)} (${item.metrics.daysLeft}d)\n`;
-          text += `   • Sugestão Terminal: *-${item.metrics.recommendedDiscount}% OFF* (Por R$ ${item.metrics.discountedUnitPrice.toFixed(2).replace('.', ',')})\n`;
-        });
-      }
+          <div class="sm:col-span-2">
+            <label class="text-[11px] text-slate-400 block mb-1">Data de Validade</label>
+            <input type="date" id="prodExpiry" required class="w-full bg-slate-900/90 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none">
+          </div>
+          <div class="sm:col-span-1">
+            <label class="text-[11px] text-slate-400 block mb-1">Qtd.</label>
+            <input type="number" id="prodQty" required min="1" value="12" class="w-full bg-slate-900/90 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none">
+          </div>
+          <div class="sm:col-span-1">
+            <label class="text-[11px] text-slate-400 block mb-1">Preço (R$)</label>
+            <input type="number" id="prodPrice" required step="0.01" min="0.1" value="8.90" class="w-full bg-slate-900/90 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none">
+          </div>
+          <div class="sm:col-span-2">
+            <label class="text-[11px] text-slate-400 block mb-1">Giro Estimado</label>
+            <select id="prodVelocity" class="w-full bg-slate-900/90 border border-slate-700 rounded-lg px-2.5 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none">
+              <option value="0.5">Baixo (~0.5 un/dia)</option>
+              <option value="1.5" selected>Médio (~1.5 un/dia)</option>
+              <option value="4.0">Alto (~4 un/dia)</option>
+            </select>
+          </div>
 
-      navigator.clipboard.writeText(text).then(() => {
-        alert('Checklist copiado! Agora é só colar no WhatsApp da equipe da loja.');
-      }).catch(() => {
-        prompt('Copie o resumo abaixo para o WhatsApp:', text);
-      });
-    }
-
-    // Exportar CSV para Excel / Google Sheets
-    function exportCSV() {
-      const items = loadItems().map(i => ({ ...i, metrics: analyzeBatch(i) }));
-      const headers = ['Produto', 'Corredor', 'Validade', 'Dias_Restantes', 'Data_Retirada_50D', 'Qtd', 'Preco_Original', 'Desconto_Sugerido_%', 'Status'];
-      const rows = items.map(i => [
-        `"${i.name}"`, `"${i.aisle}"`, i.expiry, i.metrics.daysLeft, i.metrics.pullDate, i.qty, i.price, i.metrics.recommendedDiscount, i.status
-      ]);
-      const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `radar_validade_50d_${new Date().toISOString().split('T')[0]}.csv`;
-      a.click();
-    }
-
-    // Entrada por Voz (Web Speech API)
-    function startVoiceInput() {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        alert('Seu navegador não suporta ditado por voz direto. Use o microfone do teclado do celular!');
-        return;
-      }
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'pt-BR';
-      const btn = document.getElementById('btnVoice');
-      btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Ouvindo...';
-      recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        document.getElementById('prodName').value = transcript;
-        btn.innerHTML = '<i class="fa-solid fa-microphone"></i> Voz';
-      };
-      recognition.onerror = () => { btn.innerHTML = '<i class="fa-solid fa-microphone"></i> Voz'; };
-      recognition.start();
-    }
-
-    // Scanner de Código de Barras EAN
-    function toggleScanner() {
-      const container = document.getElementById('scannerContainer');
-      if (!container.classList.contains('hidden')) {
-        if (html5QrCode) html5QrCode.stop().catch(() => {});
-        container.classList.add('hidden');
-        return;
-      }
-      container.classList.remove('hidden');
-      html5QrCode = new Html5Qrcode("reader");
-      html5QrCode.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 120 } },
-        (decodedText) => {
-          document.getElementById('prodName').value = `EAN ${decodedText} - `;
-          document.getElementById('prodName').focus();
-          toggleScanner();
-        },
-        () => {}
-      ).catch(() => {
-        alert('Permita o acesso à câmera ou abra o arquivo via HTTPS/localhost para usar o leitor de código de barras.');
-        container.classList.add('hidden');
-      });
-    }
-
-    // Inicializar data padrão (+65 dias) e renderizar
-    document.getElementById('prodExpiry').value = addDays(new Date(), 65);
-    render();
-  </script>
-</body>
-</html>
+          <div class="sm:col-span-6 pt-1">
+            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-sm shadow-lg shadow-emerald-900/40 transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-clock-rotate-left"></i> Agendar Radar de 50 Dias
+            </button>
+          </div>
+        </form>
