@@ -5,19 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#0f172a">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <title>Sentinela 50D v3.0 | Controle Inteligente de Validade</title>
+  <title>Sentinela 50D v4.0 | Minuto Pão de Açúcar</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
   <style>
     body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background-color: #0f172a; color: #f8fafc; }
-    .glass { background: rgba(30, 41, 59, 0.88); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.09); }
+    .glass { background: rgba(30, 41, 59, 0.9); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.09); }
     .pulse-red { animation: pulseRed 2s infinite; }
     @keyframes pulseRed {
       0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45); }
       50% { box-shadow: 0 0 0 9px rgba(239, 68, 68, 0); }
     }
-    #reader video { object-fit: cover !important; border-radius: 0.5rem; }
+    #reader video { object-fit: cover !important; border-radius: 0.75rem; }
   </style>
 </head>
 <body class="min-h-screen pb-24">
@@ -25,15 +25,15 @@
   <!-- Header -->
   <header class="sticky top-0 z-30 glass px-4 py-3 border-b border-slate-800">
     <div class="max-w-3xl mx-auto flex flex-wrap items-center justify-between gap-2">
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2.5">
         <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold text-lg">
           <i class="fa-solid fa-shield-halved"></i>
         </div>
         <div>
           <h1 class="font-bold text-base leading-tight text-white">
-            Sentinela 50D <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 ml-1">v3.0</span>
+            Sentinela 50D <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 ml-1">v4.0</span>
           </h1>
-          <p class="text-xs text-slate-400">6 Corredores & Modo Semáforo PCD</p>
+          <p class="text-xs text-slate-400">Lente Principal 1x & Memória de EAN</p>
         </div>
       </div>
 
@@ -63,37 +63,42 @@
 
   <main class="max-w-3xl mx-auto px-4 pt-4 space-y-5">
 
-    <!-- ======================================================= -->
-    <!-- PAINEL DE CÂMERA COMPARTILHADO (COM FOCO, ZOOM E FLASH) -->
-    <!-- ======================================================= -->
-    <div id="scannerContainer" class="hidden glass rounded-2xl p-3 border-2 border-indigo-500/60 space-y-3">
-      <div class="flex items-center justify-between text-xs">
-        <span class="font-bold text-indigo-300 flex items-center gap-1.5">
-          <i class="fa-solid fa-crosshairs"></i> Afaste ~20cm da lata e use o Zoom abaixo se necessário
+    <!-- ================================================================= -->
+    <!-- PAINEL DE CÂMERA (COM SELETOR ANTI-ULTRAWIDE, ZOOM E FLASH)       -->
+    <!-- ================================================================= -->
+    <div id="scannerContainer" class="hidden glass rounded-2xl p-3.5 border-2 border-indigo-500/70 space-y-3">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <span class="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+          <i class="fa-solid fa-camera"></i> Selecione a Câmera Principal (1x):
         </span>
-        <button type="button" onclick="stopScanner()" class="px-2.5 py-1 rounded-lg bg-red-500/20 text-red-300 font-semibold">
-          Fechar <i class="fa-solid fa-xmark ml-1"></i>
+        <button type="button" onclick="stopScanner()" class="px-2.5 py-1 rounded-lg bg-red-500/20 text-red-300 text-xs font-semibold">
+          Fechar Câmera <i class="fa-solid fa-xmark ml-1"></i>
         </button>
       </div>
+
+      <!-- Seletor de Lente (Para fugir da Ultrawide 0.5x) -->
+      <select id="cameraSelect" onchange="switchCamera(this.value)" class="w-full bg-slate-900 border border-indigo-500/50 rounded-xl px-3 py-2 text-xs font-semibold text-white">
+        <option value="">Carregando lentes do aparelho...</option>
+      </select>
 
       <!-- Visor de Vídeo -->
       <div id="reader" class="w-full overflow-hidden rounded-xl bg-black"></div>
 
-      <!-- Controles de Foco/Zoom, Lanterna e Câmera Nativa -->
+      <!-- Controles de Zoom, Lanterna e Câmera Nativa -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
         <div class="bg-slate-900/90 p-2 rounded-xl border border-slate-700 flex items-center gap-2">
           <i class="fa-solid fa-magnifying-glass-plus text-emerald-400 text-xs"></i>
-          <span class="text-[11px] text-slate-300 whitespace-nowrap">Zoom Foco:</span>
+          <span class="text-[11px] text-slate-300 whitespace-nowrap">Zoom:</span>
           <input type="range" id="zoomSlider" min="1" max="3" step="0.2" value="1" oninput="applyZoom(this.value)" class="w-full accent-emerald-500">
           <span id="zoomValue" class="text-[11px] font-bold text-emerald-400">1.0x</span>
         </div>
 
         <button type="button" onclick="toggleTorch()" id="btnTorch" class="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-semibold text-xs flex items-center justify-center gap-2 border border-slate-700">
-          <i class="fa-solid fa-bolt"></i> Ligar Lanterna (Flash)
+          <i class="fa-solid fa-bolt"></i> Lanterna (Flash)
         </button>
 
         <label class="py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer text-center shadow">
-          <i class="fa-solid fa-camera-retro"></i> Câmera Nativa (Macro)
+          <i class="fa-solid fa-camera-retro"></i> Foto Macro Nativa
           <input type="file" accept="image/*" capture="environment" onchange="scanFromNativePhoto(event)" class="hidden">
         </label>
       </div>
@@ -130,7 +135,7 @@
             <label class="text-sm font-bold text-slate-200">2. Qual é o Produto?</label>
             <div class="flex gap-2">
               <button type="button" onclick="startScanner('pcdProdName')" class="px-3 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold flex items-center gap-1.5 shadow">
-                <i class="fa-solid fa-barcode"></i> Ler Código de Barras
+                <i class="fa-solid fa-barcode"></i> Ler Código
               </button>
               <button type="button" onclick="startVoiceInput('pcdProdName', this)" class="px-3 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold flex items-center gap-1.5 shadow">
                 <i class="fa-solid fa-microphone"></i> Falar Nome
@@ -156,7 +161,7 @@
     <!-- ========================================== -->
     <div id="standardSection" class="space-y-5">
 
-      <!-- KPIs de Impacto na Loja -->
+      <!-- KPIs -->
       <section class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
         <div class="glass rounded-xl p-3 border-l-4 border-l-red-500">
           <span class="text-[11px] uppercase tracking-wider text-slate-400 block">Retirar Hoje (≤50d)</span>
@@ -180,9 +185,10 @@
           </div>
         </div>
         <div class="glass rounded-xl p-3 border-l-4 border-l-emerald-500">
-          <span class="text-[11px] uppercase tracking-wider text-slate-400 block">Valor Protegido</span>
+          <span class="text-[11px] uppercase tracking-wider text-slate-400 block">Catálogo Salvo</span>
           <div class="flex items-baseline justify-between mt-1">
-            <strong id="kpiSavedValue" class="text-lg font-extrabold text-emerald-400">R$ 0,00</strong>
+            <strong id="kpiCatalogCount" class="text-lg font-extrabold text-emerald-400">0 EANs</strong>
+            <span class="text-[10px] text-slate-400">Aprendidos</span>
           </div>
         </div>
       </section>
@@ -203,9 +209,13 @@
           </div>
         </div>
 
+        <!-- Banner de Aviso quando um EAN é aprendido -->
+        <div id="eanStatusBanner" class="hidden rounded-xl px-3 py-2 text-xs font-semibold"></div>
+
         <form id="productForm" onsubmit="addProduct(event)" class="grid grid-cols-1 sm:grid-cols-6 gap-2.5">
+          <input type="hidden" id="lastScannedEAN" value="">
           <div class="sm:col-span-3">
-            <label class="text-[11px] text-slate-400 block mb-1">Produto / Código EAN</label>
+            <label class="text-[11px] text-slate-400 block mb-1">Nome do Produto</label>
             <input type="text" id="prodName" required placeholder="Bipe o código ou digite o nome..." class="w-full bg-slate-900/90 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none">
           </div>
           <div class="sm:col-span-3">
@@ -247,3 +257,603 @@
             </button>
           </div>
         </form>
+      </section>
+
+      <!-- Abas de Filtro Operacional + Filtro de Corredor -->
+      <div class="flex flex-wrap items-center justify-between gap-2 pb-1">
+        <div class="flex gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800 overflow-x-auto">
+          <button onclick="setFilter('ALL')" id="tabALL" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white transition">Todos</button>
+          <button onclick="setFilter('PULL_NOW')" id="tabPULL_NOW" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-1">
+            <span class="w-2 h-2 rounded-full bg-red-500"></span> Retirar p/ Terminal (≤50d)
+          </button>
+          <button onclick="setFilter('QUEUED')" id="tabQUEUED" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition">
+            Fila Futura (>50d)
+          </button>
+          <button onclick="setFilter('IN_TERMINAL')" id="tabIN_TERMINAL" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition">
+            Já no Terminal
+          </button>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <select id="aisleFilter" onchange="render()" class="bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-200">
+            <option value="ALL">Todos os 6 Corredores</option>
+            <option value="Corredor 1 - Laticínios e Frios">Corredor 1 - Laticínios</option>
+            <option value="Corredor 2 - Padaria e Matinais">Corredor 2 - Padaria</option>
+            <option value="Corredor 3 - Mercearia Salgada">Corredor 3 - Mercearia Salgada</option>
+            <option value="Corredor 4 - Mercearia Doce">Corredor 4 - Mercearia Doce</option>
+            <option value="Corredor 5 - Bebidas">Corredor 5 - Bebidas</option>
+            <option value="Corredor 6 - Perfumaria e Limpeza">Corredor 6 - Perfumaria/Limpeza</option>
+          </select>
+          <button onclick="resetDemoData()" class="text-[11px] text-slate-400 hover:text-slate-200 underline whitespace-nowrap">Exemplos</button>
+        </div>
+      </div>
+
+      <!-- Lista Inteligente de Lotes -->
+      <section id="productList" class="space-y-3"></section>
+    </div>
+
+  </main>
+
+  <script>
+    const STORAGE_KEY = 'sentinela_50d_minuto_v4';
+    const CATALOG_KEY = 'sentinela_ean_catalog_v1';
+    const PREFERRED_CAM_KEY = 'sentinela_preferred_cam_id';
+
+    let currentFilter = 'ALL';
+    let isPCDMode = false;
+    let html5QrCode = null;
+    let currentScannerTarget = 'prodName';
+    let torchEnabled = false;
+    let availableBackCameras = [];
+
+    // Catálogo inicial com produtos comuns de mercado brasileiro
+    const DEFAULT_CATALOG = {
+      '7894900010015': { name: 'Refrigerante Coca-Cola Lata 350ml', aisle: 'Corredor 5 - Bebidas', price: 4.99 },
+      '7894900011517': { name: 'Refrigerante Coca-Cola 2 Litros', aisle: 'Corredor 5 - Bebidas', price: 11.99 },
+      '7894900700015': { name: 'Refrigerante Coca-Cola Sem Açúcar Lata 350ml', aisle: 'Corredor 5 - Bebidas', price: 4.99 },
+      '7894900530001': { name: 'Água Mineral Crystal Sem Gás 500ml', aisle: 'Corredor 5 - Bebidas', price: 2.99 },
+      '7894900531008': { name: 'Água Mineral Crystal Com Gás 500ml', aisle: 'Corredor 5 - Bebidas', price: 3.49 },
+      '7891025101604': { name: 'Água Mineral Bonafont Sem Gás 500ml', aisle: 'Corredor 5 - Bebidas', price: 2.99 },
+      '7896005800027': { name: 'Água Mineral Minalba Sem Gás 510ml', aisle: 'Corredor 5 - Bebidas', price: 3.19 },
+      '7891000100103': { name: 'Leite Condensado Moça Nestlé 395g', aisle: 'Corredor 4 - Mercearia Doce', price: 8.99 },
+      '7891000053508': { name: 'Achocolatado Nescau 370g', aisle: 'Corredor 2 - Padaria e Matinais', price: 9.49 }
+    };
+
+    function getCatalog() {
+      const raw = localStorage.getItem(CATALOG_KEY);
+      if (!raw) {
+        localStorage.setItem(CATALOG_KEY, JSON.stringify(DEFAULT_CATALOG));
+        return DEFAULT_CATALOG;
+      }
+      return { ...DEFAULT_CATALOG, ...JSON.parse(raw) };
+    }
+
+    function saveToCatalog(ean, name, aisle, price) {
+      if (!ean) return;
+      const cat = getCatalog();
+      cat[ean] = { name, aisle, price };
+      localStorage.setItem(CATALOG_KEY, JSON.stringify(cat));
+    }
+
+    // Helpers de Data
+    function addDays(dateObj, days) {
+      const d = new Date(dateObj);
+      d.setDate(d.getDate() + days);
+      return d.toISOString().split('T')[0];
+    }
+
+    function diffDaysFromToday(dateStr) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const target = new Date(dateStr + 'T00:00:00');
+      return Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+    }
+
+    function formatDateBR(dateStr) {
+      const [y, m, d] = dateStr.split('-');
+      return `${d}/${m}/${y}`;
+    }
+
+    function playTone(type) {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        if (type === 'ALERT') {
+          osc.frequency.value = 310;
+          osc.type = 'sawtooth';
+          gain.gain.value = 0.25;
+          osc.start();
+          setTimeout(() => { osc.frequency.value = 210; }, 180);
+          setTimeout(() => { osc.stop(); }, 450);
+        } else {
+          osc.frequency.value = 880;
+          osc.type = 'sine';
+          gain.gain.value = 0.2;
+          osc.start();
+          setTimeout(() => { osc.stop(); }, 180);
+        }
+      } catch (e) {}
+    }
+
+    function speakPT(text) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = 'pt-BR';
+        utter.rate = 0.98;
+        window.speechSynthesis.speak(utter);
+      }
+    }
+
+    function showBanner(msg, colorClass) {
+      const b = document.getElementById('eanStatusBanner');
+      b.className = `rounded-xl px-3 py-2 text-xs font-semibold ${colorClass}`;
+      b.innerHTML = msg;
+      b.classList.remove('hidden');
+      setTimeout(() => b.classList.add('hidden'), 6000);
+    }
+
+    // ============================================================================
+    // BUSCA INTELIGENTE DE NOME DO PRODUTO + APRENDIZADO AUTOMÁTICO NA MEMÓRIA
+    // ============================================================================
+    async function lookupProductByEAN(ean, targetInputId) {
+      const cleanEAN = ean.trim();
+      document.getElementById('lastScannedEAN').value = cleanEAN;
+      const inputEl = document.getElementById(targetInputId);
+
+      // 1. Verifica primeiro na memória local da loja (Instantâneo!)
+      const catalog = getCatalog();
+      if (catalog[cleanEAN]) {
+        const item = catalog[cleanEAN];
+        inputEl.value = item.name;
+        if (item.aisle && document.getElementById('prodAisle')) {
+          document.getElementById('prodAisle').value = item.aisle;
+        }
+        if (item.price && document.getElementById('prodPrice')) {
+          document.getElementById('prodPrice').value = item.price;
+        }
+        showBanner(`✅ Produto reconhecido da memória da loja: <strong>${item.name}</strong>`, 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40');
+        speakPT(item.name);
+        return;
+      }
+
+      // 2. Se não estiver na memória local, consulta base Brasil + Mundial
+      inputEl.value = `Buscando código ${cleanEAN}...`;
+      try {
+        const urls = [
+          `https://br.openfoodfacts.org/api/v2/product/${cleanEAN}.json`,
+          `https://world.openfoodfacts.org/api/v0/product/${cleanEAN}.json`
+        ];
+
+        for (const url of urls) {
+          const res = await fetch(url);
+          const data = await res.json();
+          if (data && (data.status === 1 || data.status === 'success') && data.product) {
+            const p = data.product;
+            const prodName = p.product_name_pt || p.product_name || p.generic_name_pt || p.generic_name || '';
+            const brand = p.brands ? p.brands.split(',')[0] : '';
+            const quantity = p.quantity || '';
+            const fullTitle = [prodName, brand, quantity].filter(Boolean).join(' - ').trim();
+
+            if (fullTitle) {
+              inputEl.value = fullTitle;
+              // Já salva na memória da loja para a próxima vez!
+              saveToCatalog(cleanEAN, fullTitle, document.getElementById('prodAisle').value, document.getElementById('prodPrice').value);
+              showBanner(`🌐 Encontrado na base online e salvo na loja: <strong>${fullTitle}</strong>`, 'bg-sky-500/20 text-sky-300 border border-sky-500/40');
+              render();
+              return;
+            }
+          }
+        }
+      } catch (err) {}
+
+      // 3. Se for produto exclusivo da loja ainda sem cadastro na internet, pergunta 1 vez e aprende!
+      const novoNome = prompt(`Código inédito lido (${cleanEAN})!\n\nDigite o nome deste produto APENAS ESTA VEZ (o app vai memorizar para sempre):`);
+      if (novoNome && novoNome.trim() !== '') {
+        const nomeLimpo = novoNome.trim();
+        inputEl.value = nomeLimpo;
+        saveToCatalog(cleanEAN, nomeLimpo, document.getElementById('prodAisle').value, document.getElementById('prodPrice').value);
+        showBanner(`🧠 Código ${cleanEAN} memorizado como <strong>"${nomeLimpo}"</strong>! Na próxima vez que bipar, ele preencherá sozinho.`, 'bg-amber-500/20 text-amber-300 border border-amber-500/40');
+        render();
+      } else {
+        inputEl.value = '';
+        inputEl.placeholder = `Digite o nome para o código ${cleanEAN}...`;
+        inputEl.focus();
+      }
+    }
+
+    // =========================================================================
+    // SELETOR INTELIGENTE DE CÂMERA (EVITA A ULTRAWIDE 0.5x NOS SAMSUNG GALAXY)
+    // =========================================================================
+    async function startScanner(targetInputId) {
+      currentScannerTarget = targetInputId || 'prodName';
+      const container = document.getElementById('scannerContainer');
+
+      if (!container.classList.contains('hidden')) {
+        stopScanner();
+        return;
+      }
+
+      container.classList.remove('hidden');
+      container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      try {
+        const devices = await Html5Qrcode.getCameras();
+        if (!devices || devices.length === 0) {
+          alert('Nenhuma câmera encontrada.');
+          return;
+        }
+
+        // Filtra apenas câmeras traseiras (ou todas se o navegador não rotular)
+        const backCams = devices.filter(d => /back|traseira|rear|environment|0/i.test(d.label) && !/front|frontal|user/i.test(d.label));
+        availableBackCameras = backCams.length > 0 ? backCams : devices;
+
+        const selectEl = document.getElementById('cameraSelect');
+        selectEl.innerHTML = availableBackCameras.map((cam, idx) => {
+          const isUltra = /wide|ultra|0\.5|2,\s*facing\s*back/i.test(cam.label);
+          const tag = idx === 0 ? '⭐ Lente Principal (1x Recomendada)' : (isUltra ? '⚠️ Ultrawide (Grande Angular)' : `Lente Auxiliar ${idx + 1}`);
+          return `<option value="${cam.id}">${tag} - ${cam.label || 'Câmera ' + (idx + 1)}</option>`;
+        }).join('');
+
+        // Escolhe a câmera salva pelo usuário OU a PRIMEIRA câmera traseira (que nos Samsung é a Principal 1x, e não a última que é Ultrawide!)
+        const savedCamId = localStorage.getItem(PREFERRED_CAM_KEY);
+        const camExists = availableBackCameras.some(c => c.id === savedCamId);
+        const chosenCamId = camExists ? savedCamId : availableBackCameras[0].id;
+
+        selectEl.value = chosenCamId;
+        await launchCameraStream(chosenCamId);
+
+      } catch (err) {
+        // Fallback caso o navegador peça permissão primeiro
+        await launchCameraStream({ facingMode: "environment" });
+      }
+    }
+
+    async function switchCamera(newCamId) {
+      if (!newCamId) return;
+      localStorage.setItem(PREFERRED_CAM_KEY, newCamId);
+      if (html5QrCode) {
+        try {
+          await html5QrCode.stop();
+          html5QrCode.clear();
+        } catch (e) {}
+      }
+      await launchCameraStream(newCamId);
+    }
+
+    async function launchCameraStream(cameraIdOrConfig) {
+      const formatsToSupport = [
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.EAN_8,
+        Html5QrcodeSupportedFormats.UPC_A,
+        Html5QrcodeSupportedFormats.UPC_E,
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.ITF
+      ];
+
+      html5QrCode = new Html5Qrcode("reader", {
+        formatsToSupport: formatsToSupport,
+        experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+      });
+
+      const config = {
+        fps: 24,
+        qrbox: (viewfinderWidth, viewfinderHeight) => {
+          const width = Math.floor(viewfinderWidth * 0.85);
+          const height = Math.floor(Math.min(viewfinderHeight * 0.40, 150));
+          return { width, height };
+        }
+      };
+
+      try {
+        await html5QrCode.start(
+          cameraIdOrConfig,
+          config,
+          (decodedText) => {
+            playTone('OK');
+            stopScanner();
+            lookupProductByEAN(decodedText, currentScannerTarget);
+          },
+          () => {}
+        );
+
+        setTimeout(() => {
+          try {
+            html5QrCode.applyVideoConstraints({
+              advanced: [{ focusMode: "continuous" }]
+            });
+          } catch (e) {}
+        }, 400);
+      } catch (err) {
+        alert('Erro ao iniciar esta lente. Tente selecionar outra lente na lista acima!');
+      }
+    }
+
+    function stopScanner() {
+      const container = document.getElementById('scannerContainer');
+      torchEnabled = false;
+      if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+          html5QrCode.clear();
+          html5QrCode = null;
+        }).catch(() => {
+          html5QrCode = null;
+        });
+      }
+      container.classList.add('hidden');
+    }
+
+    function applyZoom(val) {
+      document.getElementById('zoomValue').textContent = parseFloat(val).toFixed(1) + 'x';
+      if (!html5QrCode) return;
+      try {
+        html5QrCode.applyVideoConstraints({
+          advanced: [{ zoom: parseFloat(val), focusMode: "continuous" }]
+        });
+      } catch (e) {}
+    }
+
+    function toggleTorch() {
+      if (!html5QrCode) return;
+      torchEnabled = !torchEnabled;
+      const btn = document.getElementById('btnTorch');
+      try {
+        html5QrCode.applyVideoConstraints({
+          advanced: [{ torch: torchEnabled }]
+        });
+        btn.className = torchEnabled
+          ? 'py-2.5 px-3 rounded-xl bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2'
+          : 'py-2.5 px-3 rounded-xl bg-slate-800 text-amber-300 font-semibold text-xs flex items-center justify-center gap-2 border border-slate-700';
+      } catch (e) {
+        alert('Esta lente não possui flash ou o navegador bloqueou a lanterna.');
+      }
+    }
+
+    function scanFromNativePhoto(event) {
+      if (!event.target.files || event.target.files.length === 0) return;
+      const imageFile = event.target.files[0];
+      const tempScanner = new Html5Qrcode("reader");
+      tempScanner.scanFile(imageFile, true)
+        .then(decodedText => {
+          playTone('OK');
+          stopScanner();
+          lookupProductByEAN(decodedText, currentScannerTarget);
+        })
+        .catch(() => {
+          alert('Código não identificado na foto. Tente tirar a foto mais nítida.');
+        });
+    }
+
+    // Alternar Modo Semáforo PCD
+    function togglePCDMode() {
+      isPCDMode = !isPCDMode;
+      stopScanner();
+      const pcdSec = document.getElementById('pcdSection');
+      const stdSec = document.getElementById('standardSection');
+      const btn = document.getElementById('btnPCDMode');
+
+      if (isPCDMode) {
+        pcdSec.classList.remove('hidden');
+        stdSec.classList.add('hidden');
+        btn.innerHTML = '<i class="fa-solid fa-list-check"></i> Modo Completo';
+        btn.className = 'px-3 py-2 rounded-lg bg-sky-400 text-slate-950 text-xs font-extrabold flex items-center gap-1.5 shadow-lg transition';
+        speakPT('Modo Semáforo ativado.');
+      } else {
+        pcdSec.classList.add('hidden');
+        stdSec.classList.remove('hidden');
+        btn.innerHTML = '<i class="fa-solid fa-traffic-light"></i> Modo Semáforo (PCD)';
+        btn.className = 'px-3 py-2 rounded-lg bg-amber-400 text-slate-950 text-xs font-extrabold flex items-center gap-1.5 shadow-lg transition';
+        render();
+      }
+    }
+
+    function handlePCDCheck(e) {
+      e.preventDefault();
+      const name = document.getElementById('pcdProdName').value.trim();
+      const aisle = document.getElementById('pcdAisle').value;
+      const expiry = document.getElementById('pcdExpiry').value;
+      const daysLeft = diffDaysFromToday(expiry);
+
+      const scannedEAN = document.getElementById('lastScannedEAN').value;
+      if (scannedEAN) {
+        saveToCatalog(scannedEAN, name, aisle, 9.90);
+      }
+
+      const items = loadItems();
+      items.unshift({
+        id: Date.now().toString(),
+        name,
+        aisle,
+        expiry,
+        qty: 12,
+        price: 9.90,
+        velocity: 1.5,
+        status: 'SHELF'
+      });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+
+      const modal = document.getElementById('pcdModal');
+      const icon = document.getElementById('pcdModalIcon');
+      const title = document.getElementById('pcdModalTitle');
+      const sub = document.getElementById('pcdModalSubtitle');
+
+      modal.classList.remove('hidden');
+
+      if (daysLeft <= 50) {
+        modal.className = 'fixed inset-0 z-50 flex flex-col items-center justify-center p-6 text-center bg-red-600 text-white';
+        icon.innerHTML = '<i class="fa-solid fa-cart-arrow-down"></i>';
+        title.textContent = 'VERMELHO! COLOCAR NO CARRINHO';
+        sub.textContent = `Faltam ${daysLeft} dias. Levar "${name}" para o Terminal de Vencimento!`;
+        playTone('ALERT');
+        speakPT(`Vermelho! Faltam ${daysLeft} dias. Colocar no carrinho do terminal.`);
+      } else {
+        modal.className = 'fixed inset-0 z-50 flex flex-col items-center justify-center p-6 text-center bg-emerald-600 text-white';
+        icon.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+        title.textContent = 'VERDE! DEIXAR NA PRATELEIRA';
+        sub.textContent = `Faltam ${daysLeft} dias. O produto "${name}" está ótimo!`;
+        playTone('OK');
+        speakPT(`Verde! Produto está bom. Guardar na prateleira.`);
+      }
+
+      document.getElementById('pcdProdName').value = '';
+      document.getElementById('lastScannedEAN').value = '';
+    }
+
+    function closePCDModal() {
+      document.getElementById('pcdModal').classList.add('hidden');
+      render();
+    }
+
+    function analyzeBatch(item) {
+      const daysLeft = diffDaysFromToday(item.expiry);
+      const daysUntil50Window = daysLeft - 50;
+      const pullDate = addDays(new Date(item.expiry + 'T00:00:00'), -50);
+
+      const daysNeededToSellOut = item.qty / parseFloat(item.velocity || 1.5);
+      const pressureRatio = daysLeft > 0 ? (daysNeededToSellOut / daysLeft) : 99;
+
+      let recommendedDiscount = 0;
+      let urgencyLabel = '🟢 Monitorado na Gôndola';
+      let badgeColor = 'bg-slate-800 text-slate-300 border-slate-700';
+
+      if (daysLeft <= 0) {
+        recommendedDiscount = 100;
+        urgencyLabel = '⛔ VENCIDO - RETIRAR IMEDIATO';
+        badgeColor = 'bg-red-950 text-red-300 border-red-600';
+      } else if (daysLeft <= 50) {
+        if (daysLeft <= 10 || pressureRatio >= 1.4) {
+          recommendedDiscount = 50;
+          urgencyLabel = '🔴 Crítico: Desconto 50% + Frente de Caixa';
+          badgeColor = 'bg-red-500/20 text-red-300 border-red-500/40';
+        } else if (daysLeft <= 25 || pressureRatio >= 0.9) {
+          recommendedDiscount = 35;
+          urgencyLabel = '🟠 Alta Pressão: Etiqueta 35% OFF';
+          badgeColor = 'bg-orange-500/20 text-orange-300 border-orange-500/40';
+        } else {
+          recommendedDiscount = 20;
+          urgencyLabel = '🟡 Entrada 50D: Terminal 20% OFF';
+          badgeColor = 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+        }
+      }
+
+      const totalValue = item.qty * item.price;
+      const discountedUnitPrice = item.price * (1 - recommendedDiscount / 100);
+
+      return {
+        daysLeft,
+        daysUntil50Window,
+        pullDate,
+        recommendedDiscount,
+        discountedUnitPrice,
+        urgencyLabel,
+        badgeColor,
+        totalValue,
+        shouldPullNow: daysLeft <= 50 && item.status !== 'IN_TERMINAL'
+      };
+    }
+
+    function getInitialDemoData() {
+      const today = new Date();
+      return [
+        {
+          id: '1',
+          name: 'Azeite Extravirgem Borges 500ml',
+          aisle: 'Corredor 3 - Mercearia Salgada',
+          expiry: addDays(today, 47),
+          qty: 14,
+          price: 49.90,
+          velocity: 0.5,
+          status: 'SHELF'
+        },
+        {
+          id: '2',
+          name: 'Café Torrado e Moído Pilão 500g',
+          aisle: 'Corredor 2 - Padaria e Matinais',
+          expiry: addDays(today, 22),
+          qty: 28,
+          price: 21.90,
+          velocity: 1.5,
+          status: 'SHELF'
+        }
+      ];
+    }
+
+    function loadItems() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        const demo = getInitialDemoData();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(demo));
+        return demo;
+      }
+      return JSON.parse(raw);
+    }
+
+    function saveItems(items) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+      render();
+    }
+
+    function resetDemoData() {
+      localStorage.removeItem(STORAGE_KEY);
+      render();
+    }
+
+    function addProduct(e) {
+      e.preventDefault();
+      const name = document.getElementById('prodName').value.trim();
+      const aisle = document.getElementById('prodAisle').value;
+      const price = parseFloat(document.getElementById('prodPrice').value);
+      const scannedEAN = document.getElementById('lastScannedEAN').value;
+
+      // Se havia um EAN bipado, atualiza o catálogo com o nome, corredor e preço escolhidos!
+      if (scannedEAN) {
+        saveToCatalog(scannedEAN, name, aisle, price);
+      }
+
+      const items = loadItems();
+      const newItem = {
+        id: Date.now().toString(),
+        name,
+        aisle,
+        expiry: document.getElementById('prodExpiry').value,
+        qty: parseInt(document.getElementById('prodQty').value, 10),
+        price,
+        velocity: parseFloat(document.getElementById('prodVelocity').value),
+        status: 'SHELF'
+      };
+      items.unshift(newItem);
+      saveItems(items);
+      document.getElementById('prodName').value = '';
+      document.getElementById('lastScannedEAN').value = '';
+      playTone('OK');
+    }
+
+    function moveToTerminal(id) {
+      const items = loadItems().map(item => item.id === id ? { ...item, status: 'IN_TERMINAL' } : item);
+      saveItems(items);
+    }
+
+    function removeBatch(id) {
+      const items = loadItems().filter(item => item.id !== id);
+      saveItems(items);
+    }
+
+    function setFilter(f) {
+      currentFilter = f;
+      ['ALL', 'PULL_NOW', 'QUEUED', 'IN_TERMINAL'].forEach(tab => {
+        const el = document.getElementById('tab' + tab);
+        if (tab === f) {
+          el.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white transition flex items-center gap-1';
+        } else {
+          el.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-1';
+        }
+      });
+      render();
+    }
+
+    function render() {
+      const items = loadItems();
+      const analyzed = items.map(item => ({ ...
